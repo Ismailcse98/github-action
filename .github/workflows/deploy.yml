@@ -1,32 +1,58 @@
-script: |
+name: Deploy Laravel
 
-  set -e
+on:
+  push:
+    branches:
+      - main
 
-  cd /var/www/laravel-app
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
 
-  echo "📥 Pulling latest code (as ubuntu owner)"
-  git config --global --add safe.directory /var/www/laravel-app
-  git pull origin main
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  echo "📦 Composer install"
-  composer install --no-dev --optimize-autoloader
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.2.0
 
-  npm install
-  npm run build
+        with:
+          host: ${{ secrets.AWS_HOST }}
+          username: ${{ secrets.AWS_USERNAME }}
+          key: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.AWS_PORT }}
 
-  echo "🧹 Clearing cache"
-  php artisan optimize:clear
+          script: |
 
-  echo "🗄 Migration"
-  php artisan migrate --force
+            set -e
 
-  echo "⚡ Cache rebuild"
-  php artisan config:cache
-  php artisan route:cache
-  php artisan view:cache
+            cd /var/www/laravel-app
 
-  echo "🔐 Fix runtime permissions only"
-  sudo chown -R www-data:www-data storage bootstrap/cache
-  sudo chmod -R 775 storage bootstrap/cache
+            git config --global --add safe.directory /var/www/laravel-app
 
-  echo "✅ Done"
+            echo "📥 Pulling latest code"
+            git pull origin main
+
+            echo "📦 Composer install"
+            composer install --no-dev --optimize-autoloader
+
+            echo "📦 Node build"
+            npm install
+            npm run build
+
+            echo "🧹 Clearing cache"
+            php artisan optimize:clear
+
+            echo "🗄 Migrate"
+            php artisan migrate --force
+
+            echo "⚡ Cache rebuild"
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+
+            echo "🔐 Fix permissions"
+            sudo chown -R www-data:www-data storage bootstrap/cache
+            sudo chmod -R 775 storage bootstrap/cache
+
+            echo "✅ Deploy success"
