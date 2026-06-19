@@ -28,28 +28,35 @@ jobs:
 
             cd /var/www/laravel-app
 
-            echo "🔐 Ensure safe directory"
+            echo "🔐 FIX permissions BEFORE composer"
+            sudo chown -R ubuntu:ubuntu /var/www/laravel-app
+            sudo chmod -R 775 storage bootstrap/cache
+
             git config --global --add safe.directory /var/www/laravel-app
 
             echo "📥 Pull code"
             git pull origin main
 
-            echo "📦 Composer install"
+            echo "📦 Composer install (NOW SAFE)"
             composer install --no-dev --optimize-autoloader
 
-            echo "🧹 Clear cache BEFORE artisan"
+            echo "🧹 Clear cache"
             php artisan optimize:clear
+
+            echo "🔐 FIX runtime permissions AFTER composer"
+            sudo chown -R www-data:www-data storage bootstrap/cache
+            sudo chmod -R 775 storage bootstrap/cache
 
             echo "🗄 Migrate"
             php artisan migrate --force
+
+            echo "📦 Node build"
+            npm install
+            npm run build
 
             echo "⚡ Cache rebuild"
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
-
-            echo "📦 Node build"
-            npm install
-            npm run build
 
             echo "✅ Done"
