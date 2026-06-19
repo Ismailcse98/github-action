@@ -1,59 +1,32 @@
-name: Deploy Laravel
+script: |
 
-on:
-  push:
-    branches:
-      - main
+  set -e
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+  cd /var/www/laravel-app
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  echo "📥 Pulling latest code (as ubuntu owner)"
+  git config --global --add safe.directory /var/www/laravel-app
+  git pull origin main
 
-      - name: Deploy
-        uses: appleboy/ssh-action@v1.2.0
+  echo "📦 Composer install"
+  composer install --no-dev --optimize-autoloader
 
-        with:
-          host: ${{ secrets.AWS_HOST }}
-          username: ${{ secrets.AWS_USERNAME }}
-          key: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
-          port: ${{ secrets.AWS_PORT }}
+  npm install
+  npm run build
 
-          script: |
+  echo "🧹 Clearing cache"
+  php artisan optimize:clear
 
-            set -e
-            git config --global --add safe.directory /var/www/laravel-app
-            
-            cd /var/www/laravel-app
+  echo "🗄 Migration"
+  php artisan migrate --force
 
-            echo "🔧 Fix permissions BEFORE composer"
-            sudo chown -R www-data:www-data /var/www/laravel-app
-            sudo chmod -R 775 storage bootstrap/cache
+  echo "⚡ Cache rebuild"
+  php artisan config:cache
+  php artisan route:cache
+  php artisan view:cache
 
-            echo "📥 Pulling latest code"
-            git pull origin main
+  echo "🔐 Fix runtime permissions only"
+  sudo chown -R www-data:www-data storage bootstrap/cache
+  sudo chmod -R 775 storage bootstrap/cache
 
-            echo "📦 Installing dependencies"
-            composer install --no-dev --optimize-autoloader
-
-            npm install
-            npm run build
-
-            echo "🧹 Clearing cache"
-            php artisan optimize:clear
-
-            echo "🗄 Running migrations"
-            php artisan migrate --force
-
-            echo "⚡ Rebuilding cache"
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
-
-            echo "♻️ Restart queue"
-            # php artisan queue:restart
-
-            echo "✅ Deploy success"
+  echo "✅ Done"
