@@ -28,6 +28,10 @@ jobs:
 
             cd /var/www/laravel-app
 
+            echo "🔐 Fix permissions FIRST (critical)"
+            sudo chown -R ubuntu:ubuntu /var/www/laravel-app
+            sudo chmod -R 775 storage bootstrap/cache
+
             git config --global --add safe.directory /var/www/laravel-app
 
             echo "📥 Pulling latest code"
@@ -40,8 +44,12 @@ jobs:
             npm install
             npm run build
 
-            echo "🧹 Clearing cache"
+            echo "🧹 Clear cache"
             php artisan optimize:clear
+
+            echo "🔐 Fix runtime permissions AFTER build"
+            sudo chown -R www-data:www-data storage bootstrap/cache
+            sudo chmod -R 775 storage bootstrap/cache
 
             echo "🗄 Migrate"
             php artisan migrate --force
@@ -50,9 +58,5 @@ jobs:
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
-
-            echo "🔐 Fix permissions"
-            sudo chown -R www-data:www-data storage bootstrap/cache
-            sudo chmod -R 775 storage bootstrap/cache
 
             echo "✅ Deploy success"
