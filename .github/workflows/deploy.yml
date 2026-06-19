@@ -28,9 +28,7 @@ jobs:
 
             cd /var/www/laravel-app
 
-            echo "🔐 STEP 1: FIX ownership BEFORE anything"
-            sudo chown -R ubuntu:ubuntu /var/www/laravel-app
-
+            echo "🔐 Ensure safe directory"
             git config --global --add safe.directory /var/www/laravel-app
 
             echo "📥 Pull code"
@@ -39,17 +37,13 @@ jobs:
             echo "📦 Composer install"
             composer install --no-dev --optimize-autoloader
 
-            echo "🔐 STEP 2: FIX runtime permissions BEFORE artisan"
-            sudo chown -R www-data:www-data storage bootstrap/cache
-            sudo chmod -R 775 storage bootstrap/cache
-
-            echo "🧹 Clear cache"
+            echo "🧹 Clear cache BEFORE artisan"
             php artisan optimize:clear
 
             echo "🗄 Migrate"
             php artisan migrate --force
 
-            echo "⚡ IMPORTANT: cache rebuild (SAFE NOW)"
+            echo "⚡ Cache rebuild"
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
@@ -58,8 +52,4 @@ jobs:
             npm install
             npm run build
 
-            echo "🔐 STEP 3: ensure final permissions"
-            sudo chown -R www-data:www-data storage bootstrap/cache
-            sudo chmod -R 775 storage bootstrap/cache
-
-            echo "✅ Deploy success"
+            echo "✅ Done"
