@@ -13,7 +13,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Deploy to EC2
+      - name: Deploy
         uses: appleboy/ssh-action@v1.2.0
 
         with:
@@ -28,34 +28,31 @@ jobs:
 
             cd /var/www/laravel-app
 
-            echo "🚀 Pulling latest code..."
-            git pull origin main
-
-            echo "📦 Installing PHP dependencies..."
-            composer install --no-dev --optimize-autoloader
-
-            echo "📦 Installing Node dependencies..."
-            npm install
-
-            echo "🏗️ Building assets..."
-            npm run build
-
-            echo "🧹 Clearing Laravel cache..."
-            php artisan optimize:clear
-
-            echo "🔧 Fixing permissions..."
+            echo "🔧 Fix permissions BEFORE composer"
             sudo chown -R www-data:www-data /var/www/laravel-app
             sudo chmod -R 775 storage bootstrap/cache
 
-            echo "🗄️ Running migrations..."
+            echo "📥 Pulling latest code"
+            git pull origin main
+
+            echo "📦 Installing dependencies"
+            composer install --no-dev --optimize-autoloader
+
+            npm install
+            npm run build
+
+            echo "🧹 Clearing cache"
+            php artisan optimize:clear
+
+            echo "🗄 Running migrations"
             php artisan migrate --force
 
-            echo "⚡ Re-caching config/routes/views..."
+            echo "⚡ Rebuilding cache"
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
 
-            echo "♻️ Restarting queue..."
+            echo "♻️ Restart queue"
             # php artisan queue:restart
 
-            echo "✅ Deployment finished successfully!"
+            echo "✅ Deploy success"
