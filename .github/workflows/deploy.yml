@@ -28,7 +28,7 @@ jobs:
 
             cd /var/www/laravel-app
 
-            echo "🔐 Fix permissions FIRST (critical)"
+            echo "🔐 FIX permissions FIRST (critical)"
             sudo chown -R ubuntu:ubuntu /var/www/laravel-app
             sudo chmod -R 775 storage bootstrap/cache
 
@@ -40,19 +40,19 @@ jobs:
             echo "📦 Composer install"
             composer install --no-dev --optimize-autoloader
 
-            echo "📦 Node build"
-            npm install
-            npm run build
+            echo "🔐 FIX runtime permissions BEFORE artisan"
+            sudo chown -R www-data:www-data storage bootstrap/cache
+            sudo chmod -R 775 storage bootstrap/cache
 
             echo "🧹 Clear cache"
             php artisan optimize:clear
 
-            echo "🔐 Fix runtime permissions AFTER build"
-            sudo chown -R www-data:www-data storage bootstrap/cache
-            sudo chmod -R 775 storage bootstrap/cache
-
-            echo "🗄 Migrate"
+            echo "🗄 Run migrations (NOW SAFE)"
             php artisan migrate --force
+
+            echo "📦 Node build"
+            npm install
+            npm run build
 
             echo "⚡ Cache rebuild"
             php artisan config:cache
