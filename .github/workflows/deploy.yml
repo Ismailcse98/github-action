@@ -25,7 +25,8 @@ jobs:
           script: |
 
             set -e
-
+            git config --global --add safe.directory /var/www/laravel-app
+            
             cd /var/www/laravel-app
 
             echo "🔧 Fix permissions BEFORE composer"
