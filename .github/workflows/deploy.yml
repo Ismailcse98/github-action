@@ -20,16 +20,14 @@ jobs:
           port: ${{ secrets.AWS_PORT }}
 
           script: |
-
             set -e
 
             APP_DIR=/var/www/laravel-app
-            CURRENT=$(readlink $APP_DIR/current)
 
-            echo "🔍 Current live: $CURRENT"
+            echo "🔍 Detect current live version..."
+            CURRENT=$(basename "$(readlink -f $APP_DIR/current || echo "")")
 
-            # Decide inactive environment
-            if [[ "$CURRENT" == *"blue"* ]]; then
+            if [[ "$CURRENT" == "blue" ]]; then
               TARGET="green"
             else
               TARGET="blue"
@@ -39,24 +37,35 @@ jobs:
 
             cd $APP_DIR/$TARGET
 
-            echo "📥 Pull latest code"
-            git pull origin main
+            echo "📥 Sync latest code (clean reset)"
+            git fetch origin main
+            git reset --hard origin/main
 
-            echo "📦 Install dependencies"
+            echo "📦 Install PHP dependencies"
             composer install --no-dev --optimize-autoloader
-            npm install
+
+            echo "📦 Install Node dependencies + build assets"
+            npm ci
             npm run build
 
-            echo "🧹 Clear cache"
+            echo "🔗 Link shared files"
+
+            ln -sfn $APP_DIR/shared/.env $APP_DIR/$TARGET/.env
+            ln -sfn $APP_DIR/shared/storage $APP_DIR/$TARGET/storage
+            ln -sfn $APP_DIR/shared/bootstrap/cache $APP_DIR/$TARGET/bootstrap/cache
+
+            echo "🧹 Laravel optimization"
             php artisan optimize:clear
+            php artisan config:cache
+            php artisan route:cache
 
-            echo "🗄 Run migrations"
-            php artisan migrate --force
-
-            echo "🔁 Switch live symlink"
+            echo "🔁 Switch live symlink (zero downtime)"
             ln -sfn $APP_DIR/$TARGET $APP_DIR/current
+
+            echo "🗄 Run migrations safely"
+            php artisan migrate --force
 
             echo "♻ Reload nginx"
             sudo systemctl reload nginx
 
-            echo "✅ Deployment complete: $TARGET is LIVE"
+            echo "✅ Deployment successful: $TARGET is LIVE"
