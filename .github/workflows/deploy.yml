@@ -63,7 +63,7 @@ jobs:
             ln -sfn $APP_DIR/$TARGET $APP_DIR/current
 
             echo "🗄 Run migrations safely"
-            php artisan migrate --force
+            # php artisan migrate --force
 
             echo "♻ Reload nginx"
             sudo systemctl reload nginx
