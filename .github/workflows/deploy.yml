@@ -45,7 +45,7 @@ jobs:
             composer install --no-dev --optimize-autoloader
 
             echo "📦 Install Node dependencies + build assets"
-            npm ci
+            npm install
             npm run build
 
             echo "🔗 Link shared files"
